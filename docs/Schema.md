@@ -44,18 +44,27 @@
 - `tanggal_survei` (DATE)
 - `status` (ENUM: 'menunggu', 'disetujui', 'dibatalkan')
 
-### 6. `pengumuman`
+### 6. `users`
 - `id` (PK, INT / UUID)
-- `judul` (VARCHAR)
-- `konten` (TEXT)
-- `dibuat_oleh` (VARCHAR)
+- `nama` (VARCHAR)
+- `email` (VARCHAR, UNIQUE)
+- `password_hash` (VARCHAR)
+- `role` (ENUM: 'admin', 'penghuni', 'calon_penghuni')
+- `penghuni_id` (FK -> penghuni.id, nullable)
 - `created_at` (TIMESTAMP)
 - `updated_at` (TIMESTAMP)
 
-### 7. `pesan`
+### 7. `pengumuman`
 - `id` (PK, INT / UUID)
-- `pengirim_id` (FK -> penghuni.id)
-- `penerima_id` (FK -> penghuni.id atau admin)
-- `konten` (TEXT)
+- `judul` (VARCHAR)
+- `isi` (TEXT)
+- `dibuat_oleh` (FK -> users.id)
 - `created_at` (TIMESTAMP)
-- `is_read` (BOOLEAN)
+
+### 8. `pesan`
+- `id` (PK, INT / UUID)
+- `pengirim_id` (FK -> users.id)
+- `penerima_id` (FK -> users.id)
+- `isi` (TEXT)
+- `dibaca_pada` (TIMESTAMP, nullable)
+- `created_at` (TIMESTAMP)
