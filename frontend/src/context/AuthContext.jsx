@@ -8,32 +8,31 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      authService.getMe()
-        .then(userData => {
-          setUser(userData);
-          setLoading(false);
-        })
-        .catch(() => {
-          localStorage.removeItem('token');
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
+    authService.getMe()
+      .then(userData => {
+        setUser(userData);
+        setLoading(false);
+      })
+      .catch(() => {
+        setUser(null);
+        setLoading(false);
+      });
   }, []);
 
   const login = async (email, password) => {
-    const { user, token } = await authService.login(email, password);
-    localStorage.setItem('token', token);
+    const { user } = await authService.login(email, password);
     setUser(user);
     return user;
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.error('Logout failed:', err);
+    } finally {
+      setUser(null);
+    }
   };
 
   return (

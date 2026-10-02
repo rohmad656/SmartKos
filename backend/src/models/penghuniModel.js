@@ -1,12 +1,18 @@
 import pool from '../config/db.js';
 
 export const PenghuniModel = {
-  async getAll() {
-    const result = await pool.query(
-      `SELECT p.*, k.nomor_kamar FROM penghuni p
-       LEFT JOIN kamar k ON p.kamar_id = k.id
-       ORDER BY p.id DESC`
-    );
+  async getAll(kamarId = null) {
+    let query = `SELECT p.*, k.nomor_kamar FROM penghuni p
+                 LEFT JOIN kamar k ON p.kamar_id = k.id`;
+    const params = [];
+
+    if (kamarId) {
+      query += ' WHERE p.kamar_id = $1';
+      params.push(kamarId);
+    }
+
+    query += ' ORDER BY p.id DESC';
+    const result = await pool.query(query, params);
     return result.rows;
   },
 

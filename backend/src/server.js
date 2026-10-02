@@ -1,21 +1,36 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import kamarRoutes from './routes/kamarRoutes.js';
 import penghuniRoutes from './routes/penghuniRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import pembayaranRoutes from './routes/pembayaranRoutes.js';
+import perbaikanRoutes from './routes/perbaikanRoutes.js';
+import pengumumanRoutes from './routes/pengumumanRoutes.js';
+import bookingRoutes from './routes/bookingRoutes.js';
+import pesanRoutes from './routes/pesanRoutes.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  credentials: true
+}));
+app.use(cookieParser());
 app.use(express.json());
 
 app.use('/api/kamar', kamarRoutes);
 app.use('/api/penghuni', penghuniRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/pembayaran', pembayaranRoutes);
+app.use('/api/perbaikan', perbaikanRoutes);
+app.use('/api/pengumuman', pengumumanRoutes);
+app.use('/api/booking', bookingRoutes);
+app.use('/api/pesan', pesanRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'SmartKos API is running' });

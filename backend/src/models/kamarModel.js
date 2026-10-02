@@ -1,13 +1,27 @@
 import pool from '../config/db.js';
 
 export const KamarModel = {
-  async getAll() {
-    const result = await pool.query('SELECT * FROM kamar ORDER BY id DESC');
+  async getAll(status = null) {
+    let query = 'SELECT * FROM kamar';
+    const params = [];
+
+    if (status) {
+      query += ' WHERE status = $1';
+      params.push(status);
+    }
+
+    query += ' ORDER BY id DESC';
+    const result = await pool.query(query, params);
     return result.rows;
   },
 
   async getById(id) {
     const result = await pool.query('SELECT * FROM kamar WHERE id = $1', [id]);
+    return result.rows[0];
+  },
+
+  async findByNomorKamar(nomorKamar) {
+    const result = await pool.query('SELECT * FROM kamar WHERE nomor_kamar = $1', [nomorKamar]);
     return result.rows[0];
   },
 
