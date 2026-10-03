@@ -11,6 +11,7 @@ import perbaikanRoutes from './routes/perbaikanRoutes.js';
 import pengumumanRoutes from './routes/pengumumanRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import pesanRoutes from './routes/pesanRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use('/api/perbaikan', perbaikanRoutes);
 app.use('/api/pengumuman', pengumumanRoutes);
 app.use('/api/booking', bookingRoutes);
 app.use('/api/pesan', pesanRoutes);
+app.use('/api/upload', uploadRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'SmartKos API is running' });
