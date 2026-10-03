@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import cron from 'node-cron';
 import pool from './config/db.js';
 import kamarRoutes from './routes/kamarRoutes.js';
 import penghuniRoutes from './routes/penghuniRoutes.js';
@@ -12,6 +13,7 @@ import pengumumanRoutes from './routes/pengumumanRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import pesanRoutes from './routes/pesanRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import { expireBookings } from './controllers/bookingController.js';
 
 dotenv.config();
 
@@ -60,6 +62,12 @@ pool.query('SELECT NOW()', (err) => {
     process.exit(1);
   }
   console.log('Database connected successfully');
+  
+  cron.schedule('0 * * * *', () => {
+    console.log('[CRON] Running booking expiration job...');
+    expireBookings();
+  });
+  console.log('[CRON] Booking expiration job scheduled (every hour)');
   
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

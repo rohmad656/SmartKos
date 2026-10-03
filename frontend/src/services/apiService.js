@@ -125,6 +125,35 @@ export const bookingService = {
     return data.data;
   },
 
+  async create(bookingData) {
+    const { data } = await api.post('/booking', bookingData);
+    return data.data;
+  },
+
+  async uploadDPProof(id, file) {
+    const formData = new FormData();
+    formData.append('bukti_dp', file);
+    const { data } = await api.post(`/booking/${id}/bayar-dp`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return data.data;
+  },
+
+  async verifyBooking(id, approve) {
+    const { data } = await api.put(`/booking/${id}/verifikasi`, { approve });
+    return data.data;
+  },
+
+  async getPendingVerification() {
+    const { data } = await api.get('/booking/admin/pending');
+    return data.data;
+  },
+
+  async getAnalytics() {
+    const { data } = await api.get('/booking/admin/analitik-konversi');
+    return data.data;
+  },
+
   async updateStatus(id, status) {
     const { data } = await api.put(`/booking/${id}`, { status });
     return data.data;

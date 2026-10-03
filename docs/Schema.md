@@ -41,8 +41,11 @@
 - `nama_calon` (VARCHAR)
 - `kontak` (VARCHAR)
 - `kamar_id` (FK -> kamar.id)
-- `tanggal_survei` (DATE)
-- `status` (ENUM: 'menunggu', 'disetujui', 'dibatalkan')
+- `tanggal_survei` (DATE, nullable)
+- `status` (ENUM: 'menunggu', 'dp_terkirim', 'aktif', 'kedaluwarsa', 'ditolak')
+- `bukti_dp` (VARCHAR, nullable)
+- `batas_waktu` (TIMESTAMP, default: CURRENT_TIMESTAMP + INTERVAL '3 days')
+- `created_at` (TIMESTAMP)
 
 ### 6. `users`
 - `id` (PK, INT / UUID)
@@ -51,6 +54,7 @@
 - `password_hash` (VARCHAR)
 - `role` (ENUM: 'admin', 'penghuni', 'calon_penghuni')
 - `penghuni_id` (FK -> penghuni.id, nullable)
+- `is_active` (BOOLEAN, default: true)
 - `created_at` (TIMESTAMP)
 - `updated_at` (TIMESTAMP)
 
