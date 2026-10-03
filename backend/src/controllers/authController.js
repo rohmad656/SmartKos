@@ -99,3 +99,32 @@ export const getMe = async (req, res) => {
     return res.status(500).json({ data: null, error: error.message });
   }
 };
+
+export const createUser = async (req, res) => {
+  try {
+    const { nama, email, password, role } = req.body;
+
+    const existingUser = await UserModel.findByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ data: null, error: 'Email sudah terdaftar' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const newUser = await UserModel.create({
+      nama,
+      email,
+      passwordHash,
+      role: role || 'calon_penghuni',
+      penghuniId: null
+    });
+
+    return res.status(201).json({
+      data: { user: newUser },
+      error: null
+    });
+  } catch (error) {
+    return res.status(500).json({ data: null, error: error.message });
+  }
+};
