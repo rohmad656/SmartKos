@@ -1,5 +1,16 @@
 import api from '../services/authService';
 
+export const uploadService = {
+  async uploadFotoKamar(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { data } = await api.post('/upload/foto-kamar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return data.data;
+  }
+};
+
 export const kamarService = {
   async getAll(status = null) {
     const params = status ? { params: { status } } : {};

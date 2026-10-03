@@ -174,11 +174,10 @@ const CalonPenghuniDashboard = () => {
               >
                 <div className="relative h-48 bg-gradient-to-br from-blue-300 to-blue-500 flex items-center justify-center">
                   {kamar.foto_url ? (
-                    <img src={kamar.foto_url} alt={kamar.nomor_kamar} className="w-full h-full object-cover" />
+                    <img src={kamar.foto_url} alt={kamar.nomor_kamar} className="w-full h-48 object-cover" />
                   ) : (
-                    <div className="text-center text-white">
-                      <p className="text-4xl font-bold">{kamar.nomor_kamar}</p>
-                      <p className="text-sm">Kamar Kos</p>
+                    <div className="h-48 bg-gray-200 rounded flex items-center justify-center">
+                      <p className="text-gray-400">No Image</p>
                     </div>
                   )}
                 </div>

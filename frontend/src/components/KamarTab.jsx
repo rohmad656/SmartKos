@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { kamarService } from '../services/apiService';
+import ImageUpload from './ImageUpload';
 
 const KamarTab = ({ data, onRefresh }) => {
   const [showForm, setShowForm] = useState(false);
@@ -12,14 +13,17 @@ const KamarTab = ({ data, onRefresh }) => {
     deskripsi: '',
     foto_url: ''
   });
+  const [isExistingImage, setIsExistingImage] = useState(false);
 
   const handleOpenForm = (kamar = null) => {
     if (kamar) {
       setFormData(kamar);
       setEditingId(kamar.id);
+      setIsExistingImage(!!kamar.foto_url);
     } else {
       setFormData({ nomor_kamar: '', tipe: '', harga: '', status: 'kosong', deskripsi: '', foto_url: '' });
       setEditingId(null);
+      setIsExistingImage(false);
     }
     setShowForm(true);
   };
@@ -49,6 +53,16 @@ const KamarTab = ({ data, onRefresh }) => {
     }
   };
 
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, foto_url: '' }));
+    setIsExistingImage(false);
+  };
+
+  const handleImageUploadSuccess = (url) => {
+    setFormData(prev => ({ ...prev, foto_url: url }));
+    setIsExistingImage(false);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="p-4 border-b flex justify-between items-center">
@@ -63,7 +77,7 @@ const KamarTab = ({ data, onRefresh }) => {
 
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 max-h-96 overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-96 max-h-[90vh] overflow-y-auto">
             <h4 className="text-lg font-semibold mb-4">{editingId ? 'Edit Kamar' : 'Tambah Kamar'}</h4>
             <form onSubmit={handleSubmit} className="space-y-3">
               <input
@@ -106,14 +120,35 @@ const KamarTab = ({ data, onRefresh }) => {
                 className="w-full border rounded px-3 py-2 text-sm"
                 rows="3"
               />
-              <input
-                type="url"
-                placeholder="URL Foto"
-                value={formData.foto_url}
-                onChange={(e) => setFormData({ ...formData, foto_url: e.target.value })}
-                className="w-full border rounded px-3 py-2 text-sm"
-              />
-              <div className="flex gap-2 justify-end">
+              <div className="border-t pt-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Foto Kamar</label>
+                {isExistingImage ? (
+                  <div className="relative mb-3">
+                    <img
+                      src={formData.foto_url}
+                      alt="Kamar preview"
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                    >
+                      Ganti Foto
+                    </button>
+                  </div>
+                ) : null}
+                {!isExistingImage && (
+                  <ImageUpload
+                    onSuccess={handleImageUploadSuccess}
+                    onRemove={handleRemoveImage}
+                    existingUrl={formData.foto_url}
+                    maxSizeMB={5}
+                    allowedTypes={['image/jpeg', 'image/png', 'image/webp']}
+                  />
+                )}
+              </div>
+              <div className="flex gap-2 justify-end border-t pt-3">
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
