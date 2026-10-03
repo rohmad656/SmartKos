@@ -46,6 +46,15 @@ app.use((err, req, res, next) => {
 pool.query('SELECT NOW()', (err) => {
   if (err) {
     console.error('Database connection failed:', err.message);
+    console.error('Full error:', err);
+    console.error('Code:', err.code);
+    console.error('Details:', JSON.stringify({
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USER,
+      database: process.env.DB_NAME,
+      url: process.env.DATABASE_URL ? 'set' : 'not set'
+    }));
     process.exit(1);
   }
   console.log('Database connected successfully');
