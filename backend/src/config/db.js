@@ -9,6 +9,7 @@ const pool = new pg.Pool({
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'smartkos',
+  ssl: process.env.DB_HOST?.includes('supabase') ? { rejectUnauthorized: false } : false
 });
 
 export default pool;

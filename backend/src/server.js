@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import pool from './config/db.js';
 import kamarRoutes from './routes/kamarRoutes.js';
 import penghuniRoutes from './routes/penghuniRoutes.js';
 import authRoutes from './routes/authRoutes.js';
@@ -17,7 +18,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    callback(null, true);
+  },
   credentials: true
 }));
 app.use(cookieParser());
@@ -40,6 +43,14 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal Server Error', error: err.message });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+pool.query('SELECT NOW()', (err) => {
+  if (err) {
+    console.error('Database connection failed:', err.message);
+    process.exit(1);
+  }
+  console.log('Database connected successfully');
+  
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 });

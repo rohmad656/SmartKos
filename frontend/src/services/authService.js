@@ -12,35 +12,63 @@ const api = axios.create({
 
 export const authService = {
   async login(email, password) {
-    const { data } = await api.post('/auth/login', { email, password });
-    if (data.error) {
-      throw new Error(data.error);
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      return data.data;
+    } catch (error) {
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw new Error(error.message || 'Network Error');
     }
-    return data.data;
   },
 
   async register(userData) {
-    const { data } = await api.post('/auth/register', userData);
-    if (data.error) {
-      throw new Error(data.error);
+    try {
+      const { data } = await api.post('/auth/register', userData);
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      return data.data;
+    } catch (error) {
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw new Error(error.message || 'Network Error');
     }
-    return data.data;
   },
 
   async logout() {
-    const { data } = await api.post('/auth/logout');
-    if (data.error) {
-      throw new Error(data.error);
+    try {
+      const { data } = await api.post('/auth/logout');
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      return data.data;
+    } catch (error) {
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw new Error(error.message || 'Network Error');
     }
-    return data.data;
   },
 
   async getMe() {
-    const { data } = await api.get('/auth/me');
-    if (data.error) {
-      throw new Error(data.error);
+    try {
+      const { data } = await api.get('/auth/me');
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      return data.data;
+    } catch (error) {
+      if (error.response?.data?.error) {
+        throw new Error(error.response.data.error);
+      }
+      throw new Error(error.message || 'Network Error');
     }
-    return data.data;
   }
 };
 
