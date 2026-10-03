@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { kamarService, penghuniService, pembayaranService, perbaikanService, pengumumanService, bookingService } from '../services/apiService';
+import KamarTab from '../components/KamarTab';
+import PenghuniTab from '../components/PenghuniTab';
+import PembayaranTab from '../components/PembayaranTab';
+import PerbaikanTab from '../components/PerbaikanTab';
+import PengumumanTab from '../components/PengumumanTab';
+import BookingTab from '../components/BookingTab';
 
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
@@ -10,6 +16,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
 
+  const [kamar, setKamar] = useState([]);
   const [penghuni, setPenghuni] = useState([]);
   const [pembayaran, setPembayaran] = useState([]);
   const [perbaikan, setPerbaikan] = useState([]);
@@ -46,6 +53,7 @@ const AdminDashboard = () => {
       }).length;
 
       setStats({ kosong, terisi, totalPemasukan, penghuniBaru });
+      setKamar(kamars);
       setPenghuni(penghuniData);
       setPembayaran(pembayaranData);
       setPerbaikan(perbaikanData);
@@ -63,39 +71,7 @@ const AdminDashboard = () => {
     navigate('/login');
   };
 
-  const handlePerbaikanUpdate = async (id, status) => {
-    try {
-      await perbaikanService.updateStatus(id, status);
-      loadData();
-    } catch (error) {
-      alert('Gagal update status: ' + error.message);
-    }
-  };
 
-  const handleBookingUpdate = async (id, status) => {
-    try {
-      await bookingService.updateStatus(id, status);
-      loadData();
-    } catch (error) {
-      alert('Gagal update booking: ' + error.message);
-    }
-  };
-
-  const handleDeletePengumuman = async (id) => {
-    if (!confirm('Hapus pengumuman ini?')) return;
-    try {
-      await pengumumanService.delete(id);
-      loadData();
-    } catch (error) {
-      alert('Gagal hapus: ' + error.message);
-    }
-  };
-
-  const getStatusColor = (status) => {
-    if (status === 'lunas') return 'bg-green-100 text-green-800';
-    if (status === 'terlambat') return 'bg-red-100 text-red-800';
-    return 'bg-yellow-100 text-yellow-800';
-  };
 
   if (loading) {
     return (
@@ -125,7 +101,7 @@ const AdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex border-b mb-6">
-          {['dashboard', 'penghuni', 'pembayaran', 'perbaikan', 'pengumuman', 'booking'].map(tab => (
+          {['dashboard', 'kamar', 'penghuni', 'pembayaran', 'perbaikan', 'pengumuman', 'booking'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -162,187 +138,17 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {activeTab === 'penghuni' && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold">Daftar Penghuni</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kontak</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kamar</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Mulai</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {penghuni.map(p => (
-                    <tr key={p.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">{p.nama}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{p.kontak}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{p.nomor_kamar || '-'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{p.tanggal_mulai}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {activeTab === 'kamar' && <KamarTab data={kamar} onRefresh={loadData} />}
 
-        {activeTab === 'pembayaran' && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold">Riwayat Pembayaran</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Penghuni</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bulan</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {pembayaran.map(p => (
-                    <tr key={p.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">{p.nama_penghuni}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{p.bulan_tagihan}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">Rp {parseFloat(p.jumlah).toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(p.status)}`}>
-                          {p.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {activeTab === 'penghuni' && <PenghuniTab data={penghuni} onRefresh={loadData} />}
 
-        {activeTab === 'perbaikan' && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold">Laporan Perbaikan</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Penghuni</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kamar</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deskripsi</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {perbaikan.map(p => (
-                    <tr key={p.id}>
-                      <td className="px-6 py-4">{p.nama_penghuni}</td>
-                      <td className="px-6 py-4">{p.nomor_kamar}</td>
-                      <td className="px-6 py-4">{p.deskripsi}</td>
-                      <td className="px-6 py-4">{p.status}</td>
-                      <td className="px-6 py-4">
-                        <select
-                          value={p.status}
-                          onChange={(e) => handlePerbaikanUpdate(p.id, e.target.value)}
-                          className="border rounded px-2 py-1 text-sm"
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="proses">Proses</option>
-                          <option value="selesai">Selesai</option>
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {activeTab === 'pembayaran' && <PembayaranTab data={pembayaran} onRefresh={loadData} />}
 
-        {activeTab === 'pengumuman' && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold">Pengumuman</h3>
-            </div>
-            <div className="p-4 space-y-4">
-              {pengumuman.map(p => (
-                <div key={p.id} className="border p-4 rounded">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-semibold">{p.judul}</h4>
-                      <p className="text-sm text-gray-600 mt-1">{p.isi}</p>
-                      <p className="text-xs text-gray-400 mt-2">Oleh: {p.dibuat_oleh_nama}</p>
-                    </div>
-                    <button
-                      onClick={() => handleDeletePengumuman(p.id)}
-                      className="text-red-600 hover:text-red-800 text-sm"
-                    >
-                      Hapus
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {activeTab === 'perbaikan' && <PerbaikanTab data={perbaikan} onRefresh={loadData} />}
 
-        {activeTab === 'booking' && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold">Booking</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kontak</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kamar</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {booking.map(b => (
-                    <tr key={b.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">{b.nama_calon}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{b.kontak}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{b.nomor_kamar}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{b.status}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {b.status === 'menunggu' && (
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleBookingUpdate(b.id, 'disetujui')}
-                              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-                            >
-                              Setujui
-                            </button>
-                            <button
-                              onClick={() => handleBookingUpdate(b.id, 'dibatalkan')}
-                              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                            >
-                              Tolak
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        {activeTab === 'pengumuman' && <PengumumanTab data={pengumuman} onRefresh={loadData} />}
+
+        {activeTab === 'booking' && <BookingTab data={booking} onRefresh={loadData} />}
       </div>
     </div>
   );
