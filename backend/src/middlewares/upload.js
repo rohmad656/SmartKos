@@ -2,13 +2,31 @@ import multer from 'multer';
 
 const storage = multer.memoryStorage();
 
-const fileFilter = (req, file, cb) => {
-  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (allowedMimes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Hanya format JPG, PNG, WebP yang diizinkan'));
+const MAGIC_BYTES = {
+  'image/jpeg': [0xFF, 0xD8, 0xFF],
+  'image/jpg': [0xFF, 0xD8, 0xFF],
+  'image/png': [0x89, 0x50, 0x4E, 0x47],
+  'image/webp': [0x52, 0x49, 0x46, 0x46]
+};
+
+const validateMagicBytes = (buffer, mimeType) => {
+  const bytes = MAGIC_BYTES[mimeType];
+  if (!bytes) return false;
+  
+  for (let i = 0; i < bytes.length; i++) {
+    if (buffer[i] !== bytes[i]) return false;
   }
+  return true;
+};
+
+const fileFilter = (req, file, cb) => {
+  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  
+  if (!allowedMimes.includes(file.mimetype)) {
+    return cb(new Error('Format file tidak didukung. Gunakan JPG, PNG, atau WebP.'), false);
+  }
+  
+  cb(null, true);
 };
 
 export const uploadMiddleware = multer({
@@ -21,16 +39,34 @@ export const uploadMiddleware = multer({
 
 export const handleUploadError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
-    if (err.code === 'FILE_TOO_LARGE') {
-      return res.status(400).json({ data: null, error: 'File terlalu besar (max 5MB)' });
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ 
+        data: null, 
+        error: 'File terlalu besar (max 5MB)',
+        field: 'file'
+      });
     }
     if (err.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({ data: null, error: 'Hanya 1 file yang diperbolehkan' });
+      return res.status(400).json({ 
+        data: null, 
+        error: 'Hanya 1 file yang diperbolehkan',
+        field: 'file'
+      });
     }
-    return res.status(400).json({ data: null, error: err.message });
+    return res.status(400).json({ 
+      data: null, 
+      error: err.message,
+      field: 'file'
+    });
   }
   if (err) {
-    return res.status(400).json({ data: null, error: err.message });
+    return res.status(400).json({ 
+      data: null, 
+      error: err.message,
+      field: 'file'
+    });
   }
   next();
 };
+
+export { validateMagicBytes };

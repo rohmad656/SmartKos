@@ -14,6 +14,7 @@ const KamarTab = ({ data, onRefresh }) => {
     foto_url: ''
   });
   const [isExistingImage, setIsExistingImage] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenForm = (kamar = null) => {
     if (kamar) {
@@ -30,16 +31,29 @@ const KamarTab = ({ data, onRefresh }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
+      const payload = {
+        nomorKamar: formData.nomor_kamar,
+        tipe: formData.tipe,
+        harga: parseFloat(formData.harga),
+        status: formData.status,
+        deskripsi: formData.deskripsi,
+        fotoUrl: formData.foto_url
+      };
+
       if (editingId) {
-        await kamarService.update(editingId, formData);
+        await kamarService.update(editingId, payload);
       } else {
-        await kamarService.create(formData);
+        await kamarService.create(payload);
       }
       setShowForm(false);
       onRefresh();
     } catch (error) {
-      alert('Error: ' + error.message);
+      const msg = error.response?.data?.error || error.message || 'Terjadi kesalahan';
+      alert('Error: ' + msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -153,14 +167,16 @@ const KamarTab = ({ data, onRefresh }) => {
                   type="button"
                   onClick={() => setShowForm(false)}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
+                  disabled={isSubmitting}
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm disabled:opacity-50"
                 >
-                  Simpan
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>
             </form>

@@ -24,21 +24,51 @@ export const getKamarById = async (req, res) => {
 
 export const createKamar = async (req, res) => {
   try {
-    const newKamar = await KamarModel.create(req.body);
+    console.log('Create kamar request:', req.body);
+
+    const harga = parseFloat(req.body.harga);
+    if (isNaN(harga) || harga <= 0) {
+      return res.status(400).json({ 
+        data: null, 
+        error: 'Harga harus berupa angka positif',
+        field: 'harga'
+      });
+    }
+
+    const newKamar = await KamarModel.create({
+      ...req.body,
+      harga
+    });
     return res.status(201).json({ data: newKamar, error: null });
   } catch (error) {
+    console.error('Create kamar error:', error);
     return res.status(500).json({ data: null, error: error.message });
   }
 };
 
 export const updateKamar = async (req, res) => {
   try {
-    const updatedKamar = await KamarModel.update(req.params.id, req.body);
+    console.log('Update kamar request:', req.params.id, req.body);
+
+    const harga = parseFloat(req.body.harga);
+    if (isNaN(harga) || harga <= 0) {
+      return res.status(400).json({ 
+        data: null, 
+        error: 'Harga harus berupa angka positif',
+        field: 'harga'
+      });
+    }
+
+    const updatedKamar = await KamarModel.update(req.params.id, {
+      ...req.body,
+      harga
+    });
     if (!updatedKamar) {
       return res.status(404).json({ data: null, error: 'Kamar not found' });
     }
     return res.json({ data: updatedKamar, error: null });
   } catch (error) {
+    console.error('Update kamar error:', error);
     return res.status(500).json({ data: null, error: error.message });
   }
 };

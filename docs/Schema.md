@@ -9,7 +9,7 @@
 - `harga` (DECIMAL)
 - `status` (ENUM: 'kosong', 'terisi', 'maintenance')
 - `deskripsi` (TEXT)
-- `foto_url` (VARCHAR)
+- `foto_url` (TEXT)
 
 ### 2. `penghuni`
 - `id` (PK, INT / UUID)

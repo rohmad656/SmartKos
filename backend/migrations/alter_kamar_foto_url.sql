@@ -1,0 +1,1 @@
+ALTER TABLE kamar ALTER COLUMN foto_url TYPE TEXT;

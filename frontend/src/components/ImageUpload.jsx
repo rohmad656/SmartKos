@@ -10,7 +10,9 @@ const ImageUpload = ({ onSuccess, onRemove, existingUrl = null, maxSizeMB = 5, a
   const fileInputRef = useRef(null);
 
   const validateFile = useCallback((file) => {
-    if (!allowedTypes.includes(file.type)) {
+    const normalizedType = file.type === 'image/jpg' ? 'image/jpeg' : file.type;
+    
+    if (!allowedTypes.includes(file.type) && !allowedTypes.includes(normalizedType)) {
       setError('Format file tidak didukung. Gunakan JPG, PNG, atau WebP.');
       return false;
     }
@@ -50,7 +52,8 @@ const ImageUpload = ({ onSuccess, onRemove, existingUrl = null, maxSizeMB = 5, a
         }
       })
       .catch((err) => {
-        setError(err.response?.data?.error || err.message || 'Upload gagal');
+        const msg = err.response?.data?.error || err.message || 'Upload gagal';
+        setError(msg);
         if (existingUrl) {
           setPreview(existingUrl);
         } else {

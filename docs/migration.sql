@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS kamar (
     harga NUMERIC(12, 2) NOT NULL,
     status status_kamar_enum DEFAULT 'kosong',
     deskripsi TEXT,
-    foto_url VARCHAR(255),
+    foto_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

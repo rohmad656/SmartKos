@@ -2,7 +2,7 @@ import { check } from 'express-validator';
 import { handleValidationErrors } from '../middlewares/validate.js';
 import { KamarModel } from '../models/kamarModel.js';
 
-export const validateKamar = [
+export const validateKamarCreate = [
   check('nomorKamar')
     .notEmpty().withMessage('Nomor kamar wajib diisi')
     .custom(async (value) => {
@@ -12,10 +12,24 @@ export const validateKamar = [
       }
     }),
   check('tipe').notEmpty().withMessage('Tipe kamar wajib diisi'),
-  check('harga').isNumeric().withMessage('Harga harus berupa angka'),
+  check('harga')
+    .notEmpty().withMessage('Harga wajib diisi')
+    .isFloat({ gt: 0 }).withMessage('Harga harus berupa angka lebih dari 0'),
   check('status').optional().isIn(['kosong', 'terisi', 'maintenance']).withMessage('Status tidak valid'),
   handleValidationErrors
 ];
+
+export const validateKamarUpdate = [
+  check('nomorKamar').notEmpty().withMessage('Nomor kamar wajib diisi'),
+  check('tipe').notEmpty().withMessage('Tipe kamar wajib diisi'),
+  check('harga')
+    .notEmpty().withMessage('Harga wajib diisi')
+    .isFloat({ gt: 0 }).withMessage('Harga harus berupa angka lebih dari 0'),
+  check('status').optional().isIn(['kosong', 'terisi', 'maintenance']).withMessage('Status tidak valid'),
+  handleValidationErrors
+];
+
+export const validateKamar = validateKamarCreate;
 
 export const validatePenghuni = [
   check('nama').notEmpty().withMessage('Nama penghuni wajib diisi'),
