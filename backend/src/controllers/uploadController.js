@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase.js';
+import { supabase } from '../config/db.js';
 import crypto from 'crypto';
 
 export const uploadFotoKamar = async (req, res) => {

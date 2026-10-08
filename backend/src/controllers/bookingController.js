@@ -1,9 +1,6 @@
 import { BookingModel } from '../models/bookingModel.js';
 import { KamarModel } from '../models/kamarModel.js';
-import { PenghuniModel } from '../models/penghuniModel.js';
-import { PembayaranModel } from '../models/pembayaranModel.js';
-import { UserModel } from '../models/userModel.js';
-import pool from '../config/db.js';
+import { supabase } from '../config/db.js';
 
 export const getBookings = async (req, res) => {
   try {
@@ -63,7 +60,6 @@ export const uploadDPProof = async (req, res) => {
 };
 
 export const verifyBooking = async (req, res) => {
-  const client = await pool.connect();
   try {
     const { id } = req.params;
     const { approve } = req.body;
@@ -83,58 +79,69 @@ export const verifyBooking = async (req, res) => {
       return res.json({ data: rejected, error: null });
     }
 
-    await client.query('BEGIN');
+    const bulanTagihan = new Date().toISOString().slice(0, 7);
 
-    try {
-      const bulanTagihan = new Date().toISOString().slice(0, 7);
-      
-      const penghuniResult = await client.query(
-        `INSERT INTO penghuni (nama, kontak, kamar_id, tanggal_mulai)
-         VALUES ($1, $2, $3, CURRENT_DATE) RETURNING *`,
-        [booking.nama_calon, booking.kontak, booking.kamar_id]
-      );
-      const penghuni = penghuniResult.rows[0];
+    // 1. Create penghuni
+    const { data: penghuni, error: errPenghuni } = await supabase
+      .from('penghuni')
+      .insert([{
+        nama: booking.nama_calon,
+        kontak: booking.kontak,
+        kamar_id: booking.kamar_id,
+        tanggal_mulai: new Date().toISOString().split('T')[0]
+      }])
+      .select()
+      .single();
 
-      const userResult = await client.query(
-        `INSERT INTO users (nama, email, password_hash, role, penghuni_id, is_active)
-         VALUES ($1, $2, $3, $4, $5, true) RETURNING *`,
-        [
-          booking.nama_calon,
-          `penghuni_${booking.id}@smartkos.local`,
-          'temp_pass',
-          'penghuni',
-          penghuni.id
-        ]
-      );
+    if (errPenghuni) throw errPenghuni;
 
-      await client.query(
-        `UPDATE kamar SET status = $1 WHERE id = $2`,
-        ['terisi', booking.kamar_id]
-      );
+    // 2. Create user for penghuni
+    const { error: errUser } = await supabase
+      .from('users')
+      .insert([{
+        nama: booking.nama_calon,
+        email: `penghuni_${booking.id}@smartkos.local`,
+        password_hash: 'temp_pass',
+        role: 'penghuni',
+        penghuni_id: penghuni.id,
+        is_active: true
+      }]);
 
-      await client.query(
-        `INSERT INTO pembayaran (penghuni_id, bulan_tagihan, jumlah, status)
-         VALUES ($1, $2, $3, $4)`,
-        [penghuni.id, bulanTagihan, booking.harga, 'belum_lunas']
-      );
+    if (errUser) throw errUser;
 
-      await client.query(
-        `UPDATE booking SET status = $1 WHERE id = $2`,
-        ['aktif', id]
-      );
+    // 3. Update kamar status
+    const { error: errKamar } = await supabase
+      .from('kamar')
+      .update({ status: 'terisi' })
+      .eq('id', booking.kamar_id);
 
-      await client.query('COMMIT');
+    if (errKamar) throw errKamar;
 
-      const updated = await BookingModel.getById(id);
-      return res.json({ data: updated, error: null });
-    } catch (txnError) {
-      await client.query('ROLLBACK');
-      throw txnError;
-    }
+    // 4. Create pembayaran
+    const { error: errPembayaran } = await supabase
+      .from('pembayaran')
+      .insert([{
+        penghuni_id: penghuni.id,
+        bulan_tagihan: bulanTagihan,
+        jumlah: booking.harga,
+        status: 'belum_lunas'
+      }]);
+
+    if (errPembayaran) throw errPembayaran;
+
+    // 5. Update booking status
+    const { data: updated, error: errBooking } = await supabase
+      .from('booking')
+      .update({ status: 'aktif' })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (errBooking) throw errBooking;
+
+    return res.json({ data: updated, error: null });
   } catch (error) {
     return res.status(500).json({ data: null, error: error.message });
-  } finally {
-    client.release();
   }
 };
 
@@ -157,30 +164,23 @@ export const getConversionAnalytics = async (req, res) => {
 };
 
 export const expireBookings = async () => {
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-
     const expiredBookings = await BookingModel.getExpiredBookings();
 
     for (const booking of expiredBookings) {
-      await client.query(
-        `UPDATE booking SET status = $1 WHERE id = $2`,
-        ['kedaluwarsa', booking.id]
-      );
+      await supabase
+        .from('booking')
+        .update({ status: 'kedaluwarsa' })
+        .eq('id', booking.id);
 
-      await client.query(
-        `UPDATE kamar SET status = $1 WHERE id = $2`,
-        ['kosong', booking.kamar_id_ref]
-      );
+      await supabase
+        .from('kamar')
+        .update({ status: 'kosong' })
+        .eq('id', booking.kamar_id_ref);
     }
 
-    await client.query('COMMIT');
     console.log(`[CRON] Expired ${expiredBookings.length} bookings`);
   } catch (error) {
-    await client.query('ROLLBACK');
     console.error('[CRON] Error expiring bookings:', error);
-  } finally {
-    client.release();
   }
 };

@@ -1,42 +1,50 @@
-import pool from '../config/db.js';
+import { supabase } from '../config/db.js';
 
 export const PengumumanModel = {
   async getAll() {
-    const result = await pool.query(
-      `SELECT p.*, u.nama as dibuat_oleh_nama
-       FROM pengumuman p
-       LEFT JOIN users u ON p.dibuat_oleh = u.id
-       ORDER BY p.created_at DESC`
-    );
-    return result.rows;
+    const { data, error } = await supabase
+      .from('pengumuman')
+      .select('pengumuman.*, users.nama as dibuat_oleh_nama')
+      .leftJoin('users', 'pengumuman.dibuat_oleh', 'users.id')
+      .order('pengumuman.created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
   },
 
   async getById(id) {
-    const result = await pool.query(
-      `SELECT p.*, u.nama as dibuat_oleh_nama
-       FROM pengumuman p
-       LEFT JOIN users u ON p.dibuat_oleh = u.id
-       WHERE p.id = $1`,
-      [id]
-    );
-    return result.rows[0];
+    const { data, error } = await supabase
+      .from('pengumuman')
+      .select('pengumuman.*, users.nama as dibuat_oleh_nama')
+      .leftJoin('users', 'pengumuman.dibuat_oleh', 'users.id')
+      .eq('pengumuman.id', id)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
   },
 
   async create(data) {
     const { judul, isi, dibuatOleh } = data;
-    const result = await pool.query(
-      `INSERT INTO pengumuman (judul, isi, dibuat_oleh)
-       VALUES ($1, $2, $3) RETURNING *`,
-      [judul, isi, dibuatOleh]
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('pengumuman')
+      .insert([{
+        judul,
+        isi,
+        dibuat_oleh: dibuatOleh
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   },
 
   async delete(id) {
-    const result = await pool.query(
-      'DELETE FROM pengumuman WHERE id = $1 RETURNING *',
-      [id]
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('pengumuman')
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   }
 };

@@ -1,66 +1,88 @@
-import pool from '../config/db.js';
+import { supabase } from '../config/db.js';
 
 export const PembayaranModel = {
   async getAll(penghuniId = null) {
-    let query = `SELECT p.*, penghuni.nama as nama_penghuni 
-                 FROM pembayaran p
-                 LEFT JOIN penghuni ON p.penghuni_id = penghuni.id`;
-    const params = [];
-
+    let query = supabase
+      .from('pembayaran')
+      .select('pembayaran.*, penghuni.nama as nama_penghuni')
+      .leftJoin('penghuni', 'pembayaran.penghuni_id', 'penghuni.id');
+    
     if (penghuniId) {
-      query += ' WHERE p.penghuni_id = $1';
-      params.push(penghuniId);
+      query = query.eq('pembayaran.penghuni_id', penghuniId);
     }
-
-    query += ' ORDER BY p.bulan_tagihan DESC, p.id DESC';
-    const result = await pool.query(query, params);
-    return result.rows;
+    
+    const { data, error } = await query.order('pembayaran.bulan_tagihan', { ascending: false }).order('pembayaran.id', { ascending: false });
+    if (error) throw error;
+    return data || [];
   },
 
   async getById(id) {
-    const result = await pool.query(
-      `SELECT p.*, penghuni.nama as nama_penghuni 
-       FROM pembayaran p
-       LEFT JOIN penghuni ON p.penghuni_id = penghuni.id
-       WHERE p.id = $1`,
-      [id]
-    );
-    return result.rows[0];
+    const { data, error } = await supabase
+      .from('pembayaran')
+      .select('pembayaran.*, penghuni.nama as nama_penghuni')
+      .leftJoin('penghuni', 'pembayaran.penghuni_id', 'penghuni.id')
+      .eq('pembayaran.id', id)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
   },
 
   async create(data) {
     const { penghuniId, bulanTagihan, jumlah, status } = data;
-    const result = await pool.query(
-      `INSERT INTO pembayaran (penghuni_id, bulan_tagihan, jumlah, status)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [penghuniId, bulanTagihan, jumlah, status || 'belum_lunas']
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('pembayaran')
+      .insert([{
+        penghuni_id: penghuniId,
+        bulan_tagihan: bulanTagihan,
+        jumlah,
+        status: status || 'belum_lunas'
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   },
 
   async update(id, data) {
     const { bulanTagihan, jumlah, status } = data;
-    const result = await pool.query(
-      `UPDATE pembayaran
-       SET bulan_tagihan = $1, jumlah = $2, status = $3, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $4 RETURNING *`,
-      [bulanTagihan, jumlah, status, id]
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('pembayaran')
+      .update({
+        bulan_tagihan: bulanTagihan,
+        jumlah,
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   },
 
   async markAsPaid(id) {
-    const result = await pool.query(
-      `UPDATE pembayaran
-       SET status = 'lunas', tanggal_bayar = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1 RETURNING *`,
-      [id]
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('pembayaran')
+      .update({
+        status: 'lunas',
+        tanggal_bayar: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   },
 
   async delete(id) {
-    const result = await pool.query('DELETE FROM pembayaran WHERE id = $1 RETURNING *', [id]);
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('pembayaran')
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   }
 };

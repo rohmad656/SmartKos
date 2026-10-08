@@ -1,51 +1,61 @@
-import pool from '../config/db.js';
+import { supabase } from '../config/db.js';
 
 export const PerbaikanModel = {
   async getAll(penghuniId = null) {
-    let query = `SELECT p.*, penghuni.nama as nama_penghuni, k.nomor_kamar
-                 FROM perbaikan p
-                 LEFT JOIN penghuni ON p.penghuni_id = penghuni.id
-                 LEFT JOIN kamar k ON p.kamar_id = k.id`;
-    const params = [];
-
+    let query = supabase
+      .from('perbaikan')
+      .select('perbaikan.*, penghuni.nama as nama_penghuni, kamar.nomor_kamar')
+      .leftJoin('penghuni', 'perbaikan.penghuni_id', 'penghuni.id')
+      .leftJoin('kamar', 'perbaikan.kamar_id', 'kamar.id');
+    
     if (penghuniId) {
-      query += ' WHERE p.penghuni_id = $1';
-      params.push(penghuniId);
+      query = query.eq('perbaikan.penghuni_id', penghuniId);
     }
-
-    query += ' ORDER BY p.created_at DESC';
-    const result = await pool.query(query, params);
-    return result.rows;
+    
+    const { data, error } = await query.order('perbaikan.created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
   },
 
   async getById(id) {
-    const result = await pool.query(
-      `SELECT p.*, penghuni.nama as nama_penghuni, k.nomor_kamar
-       FROM perbaikan p
-       LEFT JOIN penghuni ON p.penghuni_id = penghuni.id
-       LEFT JOIN kamar k ON p.kamar_id = k.id
-       WHERE p.id = $1`,
-      [id]
-    );
-    return result.rows[0];
+    const { data, error } = await supabase
+      .from('perbaikan')
+      .select('perbaikan.*, penghuni.nama as nama_penghuni, kamar.nomor_kamar')
+      .leftJoin('penghuni', 'perbaikan.penghuni_id', 'penghuni.id')
+      .leftJoin('kamar', 'perbaikan.kamar_id', 'kamar.id')
+      .eq('perbaikan.id', id)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
   },
 
   async create(data) {
     const { penghuniId, kamarId, deskripsi } = data;
-    const result = await pool.query(
-      `INSERT INTO perbaikan (penghuni_id, kamar_id, deskripsi, status)
-       VALUES ($1, $2, $3, 'pending') RETURNING *`,
-      [penghuniId, kamarId, deskripsi]
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('perbaikan')
+      .insert([{
+        penghuni_id: penghuniId,
+        kamar_id: kamarId,
+        deskripsi,
+        status: 'pending'
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   },
 
   async update(id, status) {
-    const result = await pool.query(
-      `UPDATE perbaikan SET status = $1, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2 RETURNING *`,
-      [status, id]
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('perbaikan')
+      .update({
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   }
 };

@@ -17,7 +17,7 @@ Selalu baca dan patuhi dokumen berikut sebelum menulis kode:
 ## Stack
 - Frontend: React.js + Tailwind CSS (Vite)
 - Backend: Node.js + Express, RESTful API
-- Database: PostgreSQL (atau MySQL)
+- Database: Supabase (PostgreSQL via supabase-js SDK)
 
 ## Verifikasi
 - Jalankan build/lint setelah mengubah kode.

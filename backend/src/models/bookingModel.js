@@ -1,91 +1,122 @@
-import pool from '../config/db.js';
+import { supabase } from '../config/db.js';
 
 export const BookingModel = {
   async getAll(status = null) {
-    let query = `
-      SELECT b.*, k.nomor_kamar, k.harga, k.status as kamar_status
-      FROM booking b
-      LEFT JOIN kamar k ON b.kamar_id = k.id
-    `;
-    const params = [];
-
+    let query = supabase
+      .from('booking')
+      .select('booking.*, kamar.nomor_kamar, kamar.harga, kamar.status as kamar_status')
+      .leftJoin('kamar', 'booking.kamar_id', 'kamar.id');
+    
     if (status) {
-      query += ' WHERE b.status = $1';
-      params.push(status);
+      query = query.eq('booking.status', status);
     }
-
-    query += ' ORDER BY b.created_at DESC';
-    const result = await pool.query(query, params);
-    return result.rows;
+    
+    const { data, error } = await query.order('booking.created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
   },
 
   async getById(id) {
-    const result = await pool.query(
-      'SELECT b.*, k.nomor_kamar, k.harga FROM booking b LEFT JOIN kamar k ON b.kamar_id = k.id WHERE b.id = $1',
-      [id]
-    );
-    return result.rows[0];
+    const { data, error } = await supabase
+      .from('booking')
+      .select('booking.*, kamar.nomor_kamar, kamar.harga')
+      .leftJoin('kamar', 'booking.kamar_id', 'kamar.id')
+      .eq('booking.id', id)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
   },
 
   async create(data) {
     const { nama_calon, kontak, kamar_id, tanggal_survei } = data;
-    const batas_waktu = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    const batas_waktu = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
     
-    const result = await pool.query(
-      `INSERT INTO booking (nama_calon, kontak, kamar_id, tanggal_survei, status, batas_waktu)
-       VALUES ($1, $2, $3, $4, 'menunggu', $5) RETURNING *`,
-      [nama_calon, kontak, kamar_id, tanggal_survei || null, batas_waktu]
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('booking')
+      .insert([{
+        nama_calon,
+        kontak,
+        kamar_id,
+        tanggal_survei: tanggal_survei || null,
+        status: 'menunggu',
+        batas_waktu
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   },
 
   async updateStatus(id, status) {
-    const result = await pool.query(
-      `UPDATE booking SET status = $1 WHERE id = $2 RETURNING *`,
-      [status, id]
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('booking')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   },
 
   async uploadDPProof(id, bukti_dp) {
-    const result = await pool.query(
-      `UPDATE booking SET status = 'dp_terkirim', bukti_dp = $1 WHERE id = $2 RETURNING *`,
-      [bukti_dp, id]
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('booking')
+      .update({
+        status: 'dp_terkirim',
+        bukti_dp
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   },
 
   async getPendingVerification() {
-    const result = await pool.query(
-      `SELECT b.*, k.nomor_kamar, k.harga 
-       FROM booking b
-       LEFT JOIN kamar k ON b.kamar_id = k.id
-       WHERE b.status = 'dp_terkirim'
-       ORDER BY b.created_at ASC`
-    );
-    return result.rows;
+    const { data, error } = await supabase
+      .from('booking')
+      .select('booking.*, kamar.nomor_kamar, kamar.harga')
+      .leftJoin('kamar', 'booking.kamar_id', 'kamar.id')
+      .eq('booking.status', 'dp_terkirim')
+      .order('booking.created_at', { ascending: true });
+    if (error) throw error;
+    return data || [];
   },
 
   async getExpiredBookings() {
-    const result = await pool.query(
-      `SELECT b.*, k.id as kamar_id_ref FROM booking b
-       LEFT JOIN kamar k ON b.kamar_id = k.id
-       WHERE b.status IN ('menunggu', 'dp_terkirim')
-       AND b.batas_waktu < CURRENT_TIMESTAMP`
-    );
-    return result.rows;
+    const { data, error } = await supabase
+      .from('booking')
+      .select('booking.*, kamar.id as kamar_id_ref')
+      .leftJoin('kamar', 'booking.kamar_id', 'kamar.id')
+      .in('booking.status', ['menunggu', 'dp_terkirim'])
+      .lt('booking.batas_waktu', new Date().toISOString());
+    if (error) throw error;
+    return data || [];
   },
 
   async getConversionAnalytics() {
-    const result = await pool.query(`
-      SELECT
-        COUNT(*) as total_booking,
-        SUM(CASE WHEN status = 'aktif' THEN 1 ELSE 0 END) as konversi_sukses,
-        SUM(CASE WHEN status = 'kedaluwarsa' THEN 1 ELSE 0 END) as kedaluwarsa,
-        SUM(CASE WHEN status = 'ditolak' THEN 1 ELSE 0 END) as ditolak,
-        SUM(CASE WHEN status IN ('menunggu', 'dp_terkirim') THEN 1 ELSE 0 END) as pending
-      FROM booking
-    `);
-    return result.rows[0];
+    const { data, error } = await supabase.rpc('get_booking_analytics');
+    if (error) {
+      const { data: fallback, error: fallbackError } = await supabase
+        .from('booking')
+        .select('status');
+      if (fallbackError) throw fallbackError;
+      
+      const analytics = {
+        total_booking: fallback.length,
+        konversi_sukses: fallback.filter(b => b.status === 'aktif').length,
+        kedaluwarsa: fallback.filter(b => b.status === 'kedaluwarsa').length,
+        ditolak: fallback.filter(b => b.status === 'ditolak').length,
+        pending: fallback.filter(b => ['menunggu', 'dp_terkirim'].includes(b.status)).length
+      };
+      return analytics;
+    }
+    return data?.[0] || {
+      total_booking: 0,
+      konversi_sukses: 0,
+      kedaluwarsa: 0,
+      ditolak: 0,
+      pending: 0
+    };
   }
 };

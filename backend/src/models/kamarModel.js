@@ -1,53 +1,84 @@
-import pool from '../config/db.js';
+import { supabase } from '../config/db.js';
 
 export const KamarModel = {
   async getAll(status = null) {
-    let query = 'SELECT * FROM kamar';
-    const params = [];
-
+    let query = supabase.from('kamar').select('*');
+    
     if (status) {
-      query += ' WHERE status = $1';
-      params.push(status);
+      query = query.eq('status', status);
     }
-
-    query += ' ORDER BY id DESC';
-    const result = await pool.query(query, params);
-    return result.rows;
+    
+    const { data, error } = await query.order('id', { ascending: false });
+    if (error) throw error;
+    return data || [];
   },
 
   async getById(id) {
-    const result = await pool.query('SELECT * FROM kamar WHERE id = $1', [id]);
-    return result.rows[0];
+    const { data, error } = await supabase
+      .from('kamar')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
   },
 
   async findByNomorKamar(nomorKamar) {
-    const result = await pool.query('SELECT * FROM kamar WHERE nomor_kamar = $1', [nomorKamar]);
-    return result.rows[0];
+    const { data, error } = await supabase
+      .from('kamar')
+      .select('*')
+      .eq('nomor_kamar', nomorKamar)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || null;
   },
 
   async create(data) {
     const { nomorKamar, tipe, harga, status, deskripsi, fotoUrl } = data;
-    const result = await pool.query(
-      `INSERT INTO kamar (nomor_kamar, tipe, harga, status, deskripsi, foto_url)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [nomorKamar, tipe, harga, status || 'kosong', deskripsi, fotoUrl]
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('kamar')
+      .insert([{
+        nomor_kamar: nomorKamar,
+        tipe,
+        harga,
+        status: status || 'kosong',
+        deskripsi,
+        foto_url: fotoUrl
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   },
 
   async update(id, data) {
     const { nomorKamar, tipe, harga, status, deskripsi, fotoUrl } = data;
-    const result = await pool.query(
-      `UPDATE kamar
-       SET nomor_kamar = $1, tipe = $2, harga = $3, status = $4, deskripsi = $5, foto_url = $6, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $7 RETURNING *`,
-      [nomorKamar, tipe, harga, status, deskripsi, fotoUrl, id]
-    );
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('kamar')
+      .update({
+        nomor_kamar: nomorKamar,
+        tipe,
+        harga,
+        status,
+        deskripsi,
+        foto_url: fotoUrl,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   },
 
   async delete(id) {
-    const result = await pool.query('DELETE FROM kamar WHERE id = $1 RETURNING *', [id]);
-    return result.rows[0];
+    const { data: result, error } = await supabase
+      .from('kamar')
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return result;
   }
 };
