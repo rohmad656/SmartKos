@@ -7,7 +7,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
-  CREATE TYPE status_pembayaran_enum AS ENUM ('lunas', 'belum_lunas', 'terlambat');
+  CREATE TYPE status_pembayaran_enum AS ENUM ('lunas', 'belum_lunas', 'terlambat', 'menunggu_verifikasi');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS penghuni (
     kamar_id INT REFERENCES kamar(id) ON DELETE SET NULL,
     tanggal_mulai DATE NOT NULL,
     tanggal_selesai DATE,
+    jatuh_tempo_hari INT DEFAULT 5,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -56,7 +57,12 @@ CREATE TABLE IF NOT EXISTS pembayaran (
     jumlah NUMERIC(12, 2) NOT NULL,
     status status_pembayaran_enum DEFAULT 'belum_lunas',
     tanggal_bayar TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    jatuh_tempo DATE,
+    bukti_bayar VARCHAR(255),
+    keterangan TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(penghuni_id, bulan_tagihan)
 );
 
 -- 5. Table: perbaikan

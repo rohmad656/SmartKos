@@ -14,6 +14,7 @@ const TABS = ['profil', 'pembayaran', 'perbaikan', 'pengumuman', 'pesan'];
 const badgeColor = (status) => {
   if (status === 'lunas') return 'bg-green-100 text-green-800';
   if (status === 'terlambat') return 'bg-red-100 text-red-800';
+  if (status === 'menunggu_verifikasi') return 'bg-blue-100 text-blue-800';
   return 'bg-yellow-100 text-yellow-800';
 };
 
@@ -58,6 +59,8 @@ const PenghuniDashboard = () => {
   const [loadingAction, setLoadingAction] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [uploadFile, setUploadFile] = useState(null);
+  const [selectedTagihan, setSelectedTagihan] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -137,7 +140,24 @@ const PenghuniDashboard = () => {
       await loadData();
       notify('Pembayaran berhasil dicatat!');
     } catch (err) {
-      notify(err.message, true);
+      notify(err.response?.data?.error || err.message, true);
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleUploadBukti = async (e) => {
+    e.preventDefault();
+    if (!uploadFile || !selectedTagihan) return notify('Pilih file bukti transfer', true);
+    try {
+      setLoadingAction(true);
+      await pembayaranService.uploadBukti(selectedTagihan, uploadFile);
+      setUploadFile(null);
+      setSelectedTagihan(null);
+      await loadData();
+      notify('Bukti pembayaran berhasil diupload, menunggu verifikasi admin');
+    } catch (err) {
+      notify(err.response?.data?.error || err.message, true);
     } finally {
       setLoadingAction(false);
     }
@@ -179,7 +199,21 @@ const PenghuniDashboard = () => {
   };
 
   const thisMonth = new Date().toISOString().slice(0, 7);
-  const tagiBulanIni = pembayaran.find(p => p.bulan_tagihan === thisMonth && p.status !== 'lunas');
+  const tagiBulanIni = pembayaran.find(p => p.bulan_tagihan === thisMonth);
+
+  const getHariTerlambat = (jatuhTempo) => {
+    if (!jatuhTempo) return 0;
+    const diff = Math.floor((new Date() - new Date(jatuhTempo)) / 86400000);
+    return diff > 0 ? diff : 0;
+  };
+
+  const getSisaHari = (jatuhTempo) => {
+    if (!jatuhTempo) return null;
+    const diff = Math.ceil((new Date(jatuhTempo) - new Date()) / 86400000);
+    return diff;
+  };
+
+  const riwayat12 = pembayaran.slice(0, 12);
 
   if (loading) {
     return (
@@ -281,30 +315,88 @@ const PenghuniDashboard = () => {
 
         {activeTab === 'pembayaran' && (
           <div className="space-y-6">
-            {tagiBulanIni && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <p className="font-semibold text-yellow-800">Tagihan Bulan Ini ({tagiBulanIni.bulan_tagihan})</p>
-                  <p className="text-2xl font-bold text-yellow-900">{formatCurrency(tagiBulanIni.jumlah)}</p>
-                  <span className={`text-xs px-2 py-1 rounded font-medium ${badgeColor(tagiBulanIni.status)}`}>
-                    {tagiBulanIni.status}
-                  </span>
+            {tagiBulanIni && tagiBulanIni.status === 'terlambat' && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+                <span className="text-red-600 text-xl">⚠️</span>
+                <p className="text-red-700 font-medium">Pembayaran Anda terlambat {getHariTerlambat(tagiBulanIni.jatuh_tempo)} hari (jatuh tempo {formatDate(tagiBulanIni.jatuh_tempo)})</p>
+              </div>
+            )}
+
+            {tagiBulanIni ? (
+              <div className="bg-gradient-to-br from-green-50 to-blue-50 border rounded-xl p-6">
+                <div className="flex flex-col sm:flex-row justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-500 uppercase tracking-wide">Tagihan Bulan Ini</p>
+                    <p className="text-xs text-gray-400">{tagiBulanIni.bulan_tagihan}</p>
+                    <p className="text-3xl font-bold text-gray-800 mt-2">{formatCurrency(tagiBulanIni.jumlah)}</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${badgeColor(tagiBulanIni.status)}`}>
+                        {tagiBulanIni.status}
+                      </span>
+                      {tagiBulanIni.jatuh_tempo && tagiBulanIni.status !== 'lunas' && (
+                        <span className="text-xs text-gray-500">
+                          Jatuh tempo {formatDate(tagiBulanIni.jatuh_tempo)} · {
+                            (() => {
+                              const sisa = getSisaHari(tagiBulanIni.jatuh_tempo);
+                              if (sisa === null) return '';
+                              if (sisa < 0) return `Terlambat ${Math.abs(sisa)} hari`;
+                              if (sisa === 0) return 'Hari ini';
+                              return `${sisa} hari lagi`;
+                            })()
+                          }
+                        </span>
+                      )}
+                      {tagiBulanIni.status === 'lunas' && tagiBulanIni.tanggal_bayar && (
+                        <span className="px-2 py-1 rounded bg-green-600 text-white text-xs font-medium">✓ LUNAS {formatDate(tagiBulanIni.tanggal_bayar)}</span>
+                      )}
+                    </div>
+                    {tagiBulanIni.keterangan && (
+                      <p className="text-sm text-gray-500 mt-2">Keterangan: {tagiBulanIni.keterangan}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2 sm:items-end">
+                    {['belum_lunas', 'terlambat'].includes(tagiBulanIni.status) && (
+                      <button
+                        onClick={() => setSelectedTagihan(tagiBulanIni.id)}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                      >
+                        Upload Bukti Pembayaran
+                      </button>
+                    )}
+                    {tagiBulanIni.status === 'menunggu_verifikasi' && (
+                      <span className="text-sm text-blue-600 font-medium">Menunggu verifikasi admin</span>
+                    )}
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleBayar(tagiBulanIni.id)}
-                  disabled={loadingAction}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
-                >
-                  Bayar Sekarang
-                </button>
+              </div>
+            ) : (
+              <div className="bg-white border rounded-lg p-6 text-center">
+                <p className="text-gray-500">Tidak ada tagihan bulan ini.</p>
+                {pembayaran.length === 0 && <p className="text-xs text-gray-400 mt-1">Tagihan dibuat otomatis tiap awal bulan.</p>}
+              </div>
+            )}
+
+            {selectedTagihan && (
+              <div className="bg-white border rounded-lg p-5">
+                <h4 className="font-semibold mb-3">Upload Bukti Transfer</h4>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setUploadFile(e.target.files[0] || null)}
+                  className="w-full border rounded px-3 py-2 text-sm"
+                />
+                <div className="flex gap-2 mt-3">
+                  <button onClick={handleUploadBukti} disabled={loadingAction || !uploadFile} className="px-4 py-2 bg-green-600 text-white rounded text-sm disabled:opacity-50">Kirim Bukti</button>
+                  <button onClick={() => { setSelectedTagihan(null); setUploadFile(null); }} className="px-4 py-2 bg-gray-200 rounded text-sm">Batal</button>
+                </div>
               </div>
             )}
 
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="p-4 border-b">
-                <h3 className="text-lg font-semibold">Riwayat Pembayaran</h3>
+              <div className="p-4 border-b flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Riwayat Pembayaran (12 bulan)</h3>
               </div>
-              {pembayaran.length === 0 ? (
+              {riwayat12.length === 0 ? (
                 <p className="p-6 text-gray-500 text-center">Belum ada riwayat pembayaran.</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -313,21 +405,23 @@ const PenghuniDashboard = () => {
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bulan</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jatuh Tempo</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Bayar</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {pembayaran.map(p => (
+                      {riwayat12.map(p => (
                         <tr key={p.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">{p.bulan_tagihan}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(p.jumlah)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">{p.bulan_tagihan}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">{formatCurrency(p.jumlah)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">{p.jatuh_tempo ? formatDate(p.jatuh_tempo) : '-'}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 rounded text-xs font-medium ${badgeColor(p.status)}`}>
                               {p.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">{formatDate(p.tanggal_bayar)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">{formatDate(p.tanggal_bayar)}</td>
                         </tr>
                       ))}
                     </tbody>

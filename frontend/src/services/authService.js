@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URI || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -8,6 +8,12 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json'
   }
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
 export const authService = {
@@ -19,6 +25,7 @@ export const authService = {
       if (data.error) {
         throw new Error(data.error);
       }
+      if (data.data?.token) localStorage.setItem('token', data.data.token);
       return data.data;
     } catch (error) {
       console.error('Login error:', error);
@@ -38,6 +45,7 @@ export const authService = {
       if (data.error) {
         throw new Error(data.error);
       }
+      if (data.data?.token) localStorage.setItem('token', data.data.token);
       return data.data;
     } catch (error) {
       if (error.response?.data?.error) {
@@ -59,6 +67,8 @@ export const authService = {
         throw new Error(error.response.data.error);
       }
       throw new Error(error.message || 'Network Error');
+    } finally {
+      localStorage.removeItem('token');
     }
   },
 

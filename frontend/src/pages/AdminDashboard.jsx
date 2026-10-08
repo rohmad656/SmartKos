@@ -12,7 +12,7 @@ import BookingTab from '../components/BookingTab';
 const AdminDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ kosong: 0, terisi: 0, totalPemasukan: 0, penghuniBaru: 0 });
+  const [stats, setStats] = useState({ kosong: 0, terisi: 0, totalPemasukan: 0, penghuniBaru: 0, terlambat: 0, menungguVerifikasi: 0 });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
 
@@ -52,7 +52,10 @@ const AdminDashboard = () => {
         return start.getMonth() === new Date().getMonth();
       }).length;
 
-      setStats({ kosong, terisi, totalPemasukan, penghuniBaru });
+      const terlambat = pembayaranData.filter(p => p.status === 'terlambat').length;
+      const menungguVerifikasi = pembayaranData.filter(p => p.status === 'menunggu_verifikasi').length;
+
+      setStats({ kosong, terisi, totalPemasukan, penghuniBaru, terlambat, menungguVerifikasi });
       setKamar(kamars);
       setPenghuni(penghuniData);
       setPembayaran(pembayaranData);
@@ -133,6 +136,18 @@ const AdminDashboard = () => {
               <div className="bg-white p-6 rounded-lg shadow">
                 <p className="text-gray-600 text-sm">Penghuni Baru</p>
                 <p className="text-3xl font-bold text-orange-600">{stats.penghuniBaru}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className={`p-5 rounded-lg border ${stats.terlambat > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+                <p className={`text-sm font-medium ${stats.terlambat > 0 ? 'text-red-600' : 'text-gray-600'}`}>Tagihan Terlambat</p>
+                <p className={`text-3xl font-bold ${stats.terlambat > 0 ? 'text-red-700' : 'text-gray-400'}`}>{stats.terlambat}</p>
+                {stats.terlambat > 0 && <button onClick={() => setActiveTab('pembayaran')} className="mt-2 text-sm text-red-600 underline">Lihat tagihan</button>}
+              </div>
+              <div className={`p-5 rounded-lg border ${stats.menungguVerifikasi > 0 ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
+                <p className={`text-sm font-medium ${stats.menungguVerifikasi > 0 ? 'text-blue-600' : 'text-gray-600'}`}>Menunggu Verifikasi</p>
+                <p className={`text-3xl font-bold ${stats.menungguVerifikasi > 0 ? 'text-blue-700' : 'text-gray-400'}`}>{stats.menungguVerifikasi}</p>
+                {stats.menungguVerifikasi > 0 && <button onClick={() => setActiveTab('pembayaran')} className="mt-2 text-sm text-blue-600 underline">Verifikasi sekarang</button>}
               </div>
             </div>
           </div>

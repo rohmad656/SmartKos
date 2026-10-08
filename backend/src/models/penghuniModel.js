@@ -31,7 +31,7 @@ export const PenghuniModel = {
   },
 
   async create(data) {
-    const { nama, kontak, email, kamarId, tanggalMulai, tanggalSelesai } = data;
+    const { nama, kontak, email, kamarId, tanggalMulai, tanggalSelesai, jatuhTempoHari } = data;
     const { data: result, error } = await supabase
       .from('penghuni')
       .insert([{
@@ -40,7 +40,8 @@ export const PenghuniModel = {
         email,
         kamar_id: kamarId,
         tanggal_mulai: tanggalMulai,
-        tanggal_selesai: tanggalSelesai
+        tanggal_selesai: tanggalSelesai,
+        jatuh_tempo_hari: jatuhTempoHari || 5
       }])
       .select()
       .single();
@@ -49,18 +50,21 @@ export const PenghuniModel = {
   },
 
   async update(id, data) {
-    const { nama, kontak, email, kamarId, tanggalMulai, tanggalSelesai } = data;
+    const { nama, kontak, email, kamarId, tanggalMulai, tanggalSelesai, jatuhTempoHari } = data;
+    const updatePayload = {
+      updated_at: new Date().toISOString()
+    };
+    if (nama !== undefined) updatePayload.nama = nama;
+    if (kontak !== undefined) updatePayload.kontak = kontak;
+    if (email !== undefined) updatePayload.email = email;
+    if (kamarId !== undefined) updatePayload.kamar_id = kamarId;
+    if (tanggalMulai !== undefined) updatePayload.tanggal_mulai = tanggalMulai;
+    if (tanggalSelesai !== undefined) updatePayload.tanggal_selesai = tanggalSelesai;
+    if (jatuhTempoHari !== undefined) updatePayload.jatuh_tempo_hari = jatuhTempoHari;
+
     const { data: result, error } = await supabase
       .from('penghuni')
-      .update({
-        nama,
-        kontak,
-        email,
-        kamar_id: kamarId,
-        tanggal_mulai: tanggalMulai,
-        tanggal_selesai: tanggalSelesai,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();

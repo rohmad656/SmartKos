@@ -69,6 +69,16 @@ export const pembayaranService = {
     return data.data;
   },
 
+  async getSaya() {
+    const { data } = await api.get('/pembayaran/saya');
+    return data.data;
+  },
+
+  async getTerlambat() {
+    const { data } = await api.get('/pembayaran/terlambat');
+    return data.data;
+  },
+
   async create(pembayaranData) {
     const { data } = await api.post('/pembayaran', pembayaranData);
     return data.data;
@@ -76,6 +86,20 @@ export const pembayaranService = {
 
   async update(id, pembayaranData) {
     const { data } = await api.put(`/pembayaran/${id}`, pembayaranData);
+    return data.data;
+  },
+
+  async uploadBukti(id, file) {
+    const formData = new FormData();
+    formData.append('bukti', file);
+    const { data } = await api.post(`/pembayaran/${id}/bukti`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return data.data;
+  },
+
+  async verifikasi(id, payload) {
+    const { data } = await api.put(`/pembayaran/${id}/verifikasi`, payload);
     return data.data;
   },
 

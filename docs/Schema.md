@@ -19,14 +19,21 @@
 - `kamar_id` (FK -> kamar.id)
 - `tanggal_mulai` (DATE)
 - `tanggal_selesai` (DATE)
+- `jatuh_tempo_hari` (INT, DEFAULT 5 — hari tenggat tiap bulan, diatur super_admin)
 
 ### 3. `pembayaran`
 - `id` (PK, INT / UUID)
 - `penghuni_id` (FK -> penghuni.id)
-- `bulan_tagihan` (VARCHAR)
+- `bulan_tagihan` (VARCHAR, format YYYY-MM)
 - `jumlah` (DECIMAL)
-- `status` (ENUM: 'lunas', 'belum_lunas', 'terlambat')
-- `tanggal_bayar` (TIMESTAMP)
+- `status` (ENUM: 'lunas', 'belum_lunas', 'terlambat', 'menunggu_verifikasi')
+- `tanggal_bayar` (TIMESTAMP, nullable)
+- `jatuh_tempo` (DATE, nullable)
+- `bukti_bayar` (VARCHAR(255), nullable — URL Supabase Storage)
+- `keterangan` (TEXT, nullable — alasan penolakan verifikasi)
+- `created_at` (TIMESTAMP)
+- `updated_at` (TIMESTAMP)
+- UNIQUE INDEX `idx_pembayaran_unik` (penghuni_id, bulan_tagihan)
 
 ### 4. `perbaikan`
 - `id` (PK, INT / UUID)

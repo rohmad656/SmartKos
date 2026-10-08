@@ -55,13 +55,10 @@ const PenghuniTab = ({ data, onRefresh }) => {
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="p-4 border-b flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Daftar Penghuni</h3>
-        <button
-          onClick={() => handleOpenForm()}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-        >
-          + Tambah Penghuni
-        </button>
+        <div>
+          <h3 className="text-lg font-semibold">Daftar Penghuni</h3>
+          <p className="text-xs text-gray-500">Data penghuni terbentuk otomatis saat verifikasi DP booking.</p>
+        </div>
       </div>
 
       {showForm && (
